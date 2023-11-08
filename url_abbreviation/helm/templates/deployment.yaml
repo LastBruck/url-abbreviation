@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-deployment
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      initContainers:
+      - name: alembic-migrate
+        image: {{ .Values.initContainer.image }}
+        command: ["./migrate.sh"] 
+        env:
+          - name: ALEMBIC_DATABASE_URL
+            value: "postgresql://shift-postgres-test:shift-postgres-test@postgres.test.svc.cluster.local/ajaroshenko_postgres"
+          - name: REAL_DATABASE_URL
+            value: "postgresql+asyncpg://shift-postgres-test:shift-postgres-test@postgres.test.svc.cluster.local:5432/ajaroshenko_postgres"
+      containers:
+        - name: {{ .Release.Name }}-web
+          image: {{ .Values.container.image }}
+          ports:
+            - containerPort: {{ .Values.service.appPort }}
+          env:
+            - name: APP_HOST
+              value: {{ .Values.service.appHost }}
+            - name: BASE_URL
+              value: {{ .Values.service.baseUrl }}
+            - name: REAL_DATABASE_URL
+              value: "postgresql+asyncpg://shift-postgres-test:shift-postgres-test@postgres.test.svc.cluster.local:5432/ajaroshenko_postgres"
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: {{ .Values.service.appPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz/up
+              port: {{ .Values.service.appPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}

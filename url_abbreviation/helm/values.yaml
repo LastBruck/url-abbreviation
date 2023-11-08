@@ -1,0 +1,25 @@
+service:
+  type: LoadBalancer
+  appHost: 0.0.0.0
+  appPort: 8080
+  baseUrl: http://0.0.0.0:8080
+
+database:
+  host: postgres.test.svc.cluster.local
+  port: 5432
+  username: shift-postgres-test
+  password: shift-postgres-test
+  name: ajaroshenko_postgres
+
+initContainer:
+  image: registry.gitlab.com/shift-python/y2023/homeworks/yaroshenko-as/coursework/alembic_url_abbreviation:latest
+
+container:
+  image: registry.gitlab.com/shift-python/y2023/homeworks/yaroshenko-as/coursework/url_abbreviation:v3
+
+replicaCount: 3
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 800Mi
